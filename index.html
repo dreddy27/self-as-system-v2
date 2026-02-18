@@ -2,32 +2,967 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=800, initial-scale=1.0">
-  <title>Self as System Build v1</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Breath Engine</title>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@300;400&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  overflow: hidden;
+}
+
+body.scrollable {
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+#main-container {
+  height: auto;
+}
+
+.section {
+  min-height: 100vh;
+  position: relative;
+  overflow-y: visible;
+}
+
+#three-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+#three-container.visible {
+  opacity: 1;
+}
+
+#overlay-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+#overlay-canvas.active {
+  pointer-events: auto;
+}
+
+#landing {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+  transition: opacity 2s ease;
+  cursor: pointer;
+}
+
+#landing.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.landing-logo {
+  font-size: 140px;
+  font-weight: 700;
+  letter-spacing: 25px;
+  background: linear-gradient(135deg, #23BFA3, #2EE5C7);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 4s ease infinite;
+  filter: drop-shadow(0 0 40px rgba(35, 191, 163, 0.6));
+  pointer-events: none;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.landing-cta {
+  margin-top: 60px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  animation: pulse 2s ease infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+#breathing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.98);
+  pointer-events: none;
+}
+
+#breathing-overlay.active {
+  display: flex;
+}
+
+.breath-step {
+  font-size: 48px;
+  font-weight: 300;
+  opacity: 0;
+  position: absolute;
+  transition: opacity 2.5s ease;
+  background: linear-gradient(90deg, #23BFA3, #2EE5C7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 25px rgba(35, 191, 163, 0.6));
+}
+
+.breath-step.visible {
+  opacity: 1;
+}
+
+#instructions-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1002;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.95);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#instructions-overlay.active {
+  display: flex;
+}
+
+.instructions-content {
+  max-width: 700px;
+  text-align: center;
+  padding: 0 40px;
+  opacity: 0;
+  transition: opacity 2s ease;
+  pointer-events: none;
+}
+
+.instructions-content.visible {
+  opacity: 1;
+}
+
+.instructions-title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #2EE5C7;
+  margin-bottom: 30px;
+  text-transform: uppercase;
+}
+
+.instructions-list {
+  text-align: left;
+  margin-bottom: 40px;
+}
+
+.instruction-item {
+  font-size: 16px;
+  line-height: 2;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 16px;
+  padding-left: 30px;
+  position: relative;
+}
+
+.instruction-item::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: #23BFA3;
+  font-weight: 700;
+}
+
+.instructions-cta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  animation: pulse 2s ease infinite;
+}
+
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 30px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.app-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: rgba(35, 191, 163, 0.9);
+  text-transform: uppercase;
+}
+
+.breath-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+.breath-counter.active {
+  color: #2EE5C7;
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 20px rgba(46, 229, 199, 1));
+}
+
+.scroll-prompt {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  z-index: 5;
+  pointer-events: none;
+  animation: scrollPulse 2s ease infinite;
+}
+
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, 0); }
+  50% { opacity: 1; transform: translate(-50%, -5px); }
+}
+
+.scroll-prompt::after {
+  content: '↓';
+  display: block;
+  text-align: center;
+  margin-top: 5px;
+  font-size: 18px;
+}
+
+.toggle-controls {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(35, 191, 163, 0.3);
+  border: 2px solid rgba(35, 191, 163, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 11;
+  pointer-events: auto;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(35, 191, 163, 0.4);
+}
+
+.toggle-controls:hover {
+  background: rgba(35, 191, 163, 0.4);
+  transform: scale(1.1);
+  box-shadow: 0 6px 30px rgba(35, 191, 163, 0.6);
+}
+
+.toggle-controls::before {
+  content: '⚙';
+  font-size: 24px;
+  color: #fff;
+}
+
+.toggle-controls.active::before {
+  content: '×';
+  font-size: 28px;
+}
+
+.bottom-dock {
+  position: fixed;
+  bottom: 90px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px;
+  background: rgba(10, 61, 98, 0.25);
+  backdrop-filter: blur(25px);
+  border: 2px solid rgba(35, 191, 163, 0.4);
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+  z-index: 10;
+  pointer-events: auto;
+  width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.bottom-dock.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.dock-title {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #2EE5C7;
+  text-transform: uppercase;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(35, 191, 163, 0.3);
+}
+
+.param-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.param-item {
+  background: rgba(35, 191, 163, 0.08);
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(35, 191, 163, 0.25);
+  transition: all 0.3s ease;
+}
+
+.param-item:hover {
+  background: rgba(35, 191, 163, 0.12);
+  border-color: rgba(35, 191, 163, 0.4);
+}
+
+.param-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.param-name {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: #2EE5C7;
+  text-transform: uppercase;
+}
+
+.param-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.param-description {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.param-slider {
+  width: 100%;
+  height: 6px;
+  background: rgba(35, 191, 163, 0.2);
+  border-radius: 3px;
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.param-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #23BFA3, #2EE5C7);
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(35, 191, 163, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.param-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 25px rgba(46, 229, 199, 1);
+}
+
+.param-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #23BFA3, #2EE5C7);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(35, 191, 163, 0.8);
+}
+
+#reflection-section {
+  min-height: auto;
+  padding-bottom: 100px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(10, 61, 98, 0.3) 100%);
+  padding: 100px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reflection-container {
+  max-width: 900px;
+  width: 100%;
+}
+
+.reflection-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.reflection-header h2 {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  background: linear-gradient(135deg, #23BFA3, #2EE5C7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 30px rgba(35, 191, 163, 0.5));
+}
+
+.reflection-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.reflection-item {
+  margin-bottom: 40px;
+  padding: 30px;
+  background: rgba(35, 191, 163, 0.08);
+  border-left: 4px solid rgba(35, 191, 163, 0.6);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.reflection-item:hover {
+  background: rgba(35, 191, 163, 0.12);
+  border-left-color: rgba(46, 229, 199, 0.8);
+  transform: translateX(8px);
+}
+
+.reflection-item h3 {
+  font-size: 16px;
+  color: #2EE5C7;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.reflection-item p {
+  font-size: 16px;
+  line-height: 1.9;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+@media (max-width: 768px) {
+  .landing-logo { font-size: 60px; }
+  .bottom-dock { 
+    width: calc(100% - 40px);
+    right: 20px;
+    left: 20px;
+    bottom: 80px;
+    max-height: 70vh;
+  }
+  .toggle-controls { bottom: 20px; right: 20px; }
+  .scroll-prompt { bottom: 20px; }
+  .reflection-header h2 { font-size: 32px; }
+  #reflection-section { padding: 60px 20px; }
+}
+  </style>
 </head>
 <body>
-  <div class="panel system-organic">
-    <div class="system-header">
-      <h1 class="system-title">Calm Engine</h1>
-      <div class="system-subtitle">A meditative system of slow ripples, gentle sound, and quiet restraint</div>
-    </div>
-    <div class="system-organic-content">
-      <div class="system-organic-block">
-        <span class="icon">🔵</span>
-        Ripples expand and fade slowly, creating calm and restraint.<br>
-        <span class="icon">🖱️</span>
-        Click or tap anywhere to create a ripple at that point.<br>
-        <span class="icon">⛔</span>
-        No more than 8 ripples at once—order is always preserved.
-      </div>
-      <div class="system-organic-block reflection">
-        <span class="icon">💬</span>
-        <b>Reflection:</b> The slow, expanding/fading ripple and direct gesture mapping create a sense of calm and personal presence. The static sigil was cut for being lifeless; animation is essential for a meditative system. The ripple limit is now strictly enforced to maintain order. My next question: how can subtle sound and atmosphere deepen calm without distraction?
-      </div>
+  <div id="three-container"></div>
+  <canvas id="overlay-canvas"></canvas>
+  
+  <div id="landing">
+    <div class="landing-content">
+      <div class="landing-logo">BREATH ENGINE</div>
+      <div class="landing-cta">Click anywhere to begin</div>
     </div>
   </div>
-  <canvas id="system-canvas" width="800" height="400"></canvas>
-  <script src="script.js"></script>
+  
+  <div id="breathing-overlay">
+    <div class="breath-step" id="step1">Breathe in slowly</div>
+    <div class="breath-step" id="step2">Hold your breath</div>
+    <div class="breath-step" id="step3">Exhale gently</div>
+  </div>
+  
+  <div id="instructions-overlay">
+    <div class="instructions-content" id="instructions-content">
+      <div class="instructions-title">System Instructions</div>
+      <div class="instructions-list">
+        <div class="instruction-item">Press and hold anywhere to create expanding breath rings</div>
+        <div class="instruction-item">Release to let the rings fade and exhale</div>
+        <div class="instruction-item">Click the gear icon (⚙) to adjust breath parameters</div>
+        <div class="instruction-item">Scroll down to view the v3 reflection</div>
+      </div>
+      <div class="instructions-cta">Click anywhere to continue</div>
+    </div>
+  </div>
+  
+  <div id="main-container">
+    <section class="section" id="breath-section">
+      <div class="top-bar">
+        <div class="app-title">The Breath Engine v3</div>
+        <div class="breath-counter" id="breathCount">0</div>
+      </div>
+      
+      <div class="scroll-prompt">Scroll down to view reflection</div>
+      
+      <button class="toggle-controls" id="toggle-btn"></button>
+      
+      <div class="bottom-dock" id="controls-dock">
+        <div class="dock-title">Breath Parameters</div>
+        
+        <div class="param-grid">
+          <div class="param-item">
+            <div class="param-header">
+              <span class="param-name">Growth Speed</span>
+              <span class="param-value" id="growth-val">0.7</span>
+            </div>
+            <div class="param-description">How fast the rings expand when you hold</div>
+            <input type="range" class="param-slider" id="growth-slider" min="0.3" max="1.2" step="0.05" value="0.68">
+          </div>
+          
+          <div class="param-item">
+            <div class="param-header">
+              <span class="param-name">Ring Count</span>
+              <span class="param-value" id="rings-val">6</span>
+            </div>
+            <div class="param-description">Number of concentric rings that appear</div>
+            <input type="range" class="param-slider" id="rings-slider" min="3" max="10" step="1" value="6">
+          </div>
+          
+          <div class="param-item">
+            <div class="param-header">
+              <span class="param-name">Ring Distance</span>
+              <span class="param-value" id="spacing-val">40px</span>
+            </div>
+            <div class="param-description">Space between each ring layer</div>
+            <input type="range" class="param-slider" id="spacing-slider" min="20" max="60" step="5" value="40">
+          </div>
+          
+          <div class="param-item">
+            <div class="param-header">
+              <span class="param-name">Fade Time</span>
+              <span class="param-value" id="fade-val">2.6s</span>
+            </div>
+            <div class="param-description">How long rings take to disappear</div>
+            <input type="range" class="param-slider" id="fade-slider" min="1500" max="4000" step="100" value="2600">
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section class="section" id="reflection-section">
+      <div class="reflection-container">
+        <div class="reflection-header">
+          <h2>v3 Reflection</h2>
+          <div class="reflection-subtitle">End-of-Build Analysis</div>
+        </div>
+        
+        <div class="reflection-item">
+          <h3>What became clearer in v3?</h3>
+          <p>The relationship between parameters and breath became tangible through 3D interaction. Draggable circular dials replaced hidden sliders, making the system's rules visible and manipulable in space. The multi-layered 3D particle environment creates dimensional presence that reinforces the meditative atmosphere.</p>
+        </div>
+        
+        <div class="reflection-item">
+          <h3>What became quieter in v3 (and why that matters)?</h3>
+          <p>The UI collapsed into a minimal dock. This quieter interface lets the breath interaction dominate—particles expand, camera zooms. The quietness creates space for the interaction to feel alive.</p>
+        </div>
+        
+        <div class="reflection-item">
+          <h3>Where is the system most alive now?</h3>
+          <p>In the 3D depth of interaction. When you hold, particles expand in all dimensions, the camera zooms. Multiple feedback layers create a synesthetic response—you're not just watching breath, you're inside it.</p>
+        </div>
+        
+        <div class="reflection-item">
+          <h3>What would you refine next?</h3>
+          <p>Add parameter memory so the system learns your preferred breathing rhythm. Introduce collaborative breath where multiple users create harmonic patterns together. Implement VR support to truly place the user inside the breathing space.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+const overlayCanvas = document.getElementById('overlay-canvas');
+const overlayCtx = overlayCanvas.getContext('2d');
+overlayCanvas.width = window.innerWidth;
+overlayCanvas.height = window.innerHeight;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.getElementById('three-container').appendChild(renderer.domElement);
+
+const layers = [];
+for (let layer = 0; layer < 5; layer++) {
+  const particleCount = 200;
+  const particles = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  const colors = new Float32Array(particleCount * 3);
+  
+  const radius = 30 + layer * 20;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI;
+    const r = radius + (Math.random() - 0.5) * 10;
+    
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+    
+    colors[i * 3] = 0.14 + layer * 0.1;
+    colors[i * 3 + 1] = 0.75;
+    colors[i * 3 + 2] = 0.64;
+  }
+  
+  particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  
+  const material = new THREE.PointsMaterial({
+    size: 2,
+    sizeAttenuation: true,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.7 - layer * 0.1,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const system = new THREE.Points(particles, material);
+  scene.add(system);
+  layers.push({ system, baseRadius: radius, speed: 0.0005 + layer * 0.0002 });
+}
+
+camera.position.z = 80;
+
+let breathIntensity = 0;
+let targetCameraZ = 80;
+
+function animateThree() {
+  requestAnimationFrame(animateThree);
+  
+  layers.forEach(layer => {
+    layer.system.rotation.y += layer.speed;
+    layer.system.rotation.x += layer.speed * 0.5;
+    
+    const positions = layer.system.geometry.attributes.position.array;
+    const expansion = 1 + breathIntensity * 0.3;
+    
+    for (let j = 0; j < positions.length; j += 3) {
+      const distance = Math.sqrt(positions[j]**2 + positions[j+1]**2 + positions[j+2]**2);
+      const targetDistance = layer.baseRadius * expansion;
+      const diff = targetDistance - distance;
+      
+      if (Math.abs(diff) > 0.1) {
+        const factor = diff * 0.05;
+        positions[j] += positions[j] / distance * factor;
+        positions[j + 1] += positions[j + 1] / distance * factor;
+        positions[j + 2] += positions[j + 2] / distance * factor;
+      }
+    }
+    layer.system.geometry.attributes.position.needsUpdate = true;
+  });
+  
+  targetCameraZ = 80 - breathIntensity * 20;
+  camera.position.z += (targetCameraZ - camera.position.z) * 0.05;
+  
+  renderer.render(scene, camera);
+}
+animateThree();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  overlayCanvas.width = window.innerWidth;
+  overlayCanvas.height = window.innerHeight;
+});
+
+document.getElementById('landing').addEventListener('click', () => {
+  document.getElementById('landing').classList.add('hidden');
+  setTimeout(() => {
+    document.getElementById('breathing-overlay').classList.add('active');
+    startBreathingSequence();
+  }, 500);
+});
+
+function startBreathingSequence() {
+  const steps = [step1, step2, step3];
+  const duration = 3500;
+  
+  steps[0].classList.add('visible');
+  setTimeout(() => {
+    steps[0].classList.remove('visible');
+    steps[1].classList.add('visible');
+  }, duration);
+  
+  setTimeout(() => {
+    steps[1].classList.remove('visible');
+    steps[2].classList.add('visible');
+  }, duration * 2);
+  
+  setTimeout(() => {
+    steps[2].classList.remove('visible');
+    
+    setTimeout(() => {
+      document.getElementById('breathing-overlay').classList.remove('active');
+      document.getElementById('instructions-overlay').classList.add('active');
+      setTimeout(() => {
+        document.getElementById('instructions-content').classList.add('visible');
+      }, 100);
+    }, 2000);
+  }, duration * 3);
+}
+
+document.getElementById('instructions-overlay').addEventListener('click', () => {
+  document.getElementById('instructions-overlay').classList.remove('active');
+  document.getElementById('three-container').classList.add('visible');
+  document.getElementById('overlay-canvas').classList.add('active');
+  document.body.classList.add('scrollable');
+});
+
+const toggleBtn = document.getElementById('toggle-btn');
+const controlsDock = document.getElementById('controls-dock');
+let controlsVisible = false;
+
+toggleBtn.addEventListener('click', () => {
+  controlsVisible = !controlsVisible;
+  if (controlsVisible) {
+    controlsDock.classList.add('visible');
+    toggleBtn.classList.add('active');
+  } else {
+    controlsDock.classList.remove('visible');
+    toggleBtn.classList.remove('active');
+  }
+});
+
+let params = { growth: 0.68, rings: 6, spacing: 40, fade: 2600 };
+
+document.getElementById('growth-slider').addEventListener('input', e => {
+  params.growth = parseFloat(e.target.value);
+  document.getElementById('growth-val').textContent = params.growth.toFixed(1);
+});
+
+document.getElementById('rings-slider').addEventListener('input', e => {
+  params.rings = parseInt(e.target.value);
+  document.getElementById('rings-val').textContent = params.rings;
+});
+
+document.getElementById('spacing-slider').addEventListener('input', e => {
+  params.spacing = parseInt(e.target.value);
+  document.getElementById('spacing-val').textContent = params.spacing + 'px';
+});
+
+document.getElementById('fade-slider').addEventListener('input', e => {
+  params.fade = parseInt(e.target.value);
+  document.getElementById('fade-val').textContent = (params.fade / 1000).toFixed(1) + 's';
+});
+
+let totalBreaths = 0;
+let ripple = null;
+let holdStartTime = 0;
+let audioCtx, osc1, osc2, gain1, gain2;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function startTone(y) {
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+  
+  if (osc1) {
+    try { osc1.stop(); osc2.stop(); osc1.disconnect(); osc2.disconnect(); } catch(e) {}
+  }
+  
+  osc1 = ctx.createOscillator();
+  osc2 = ctx.createOscillator();
+  gain1 = ctx.createGain();
+  gain2 = ctx.createGain();
+  
+  const baseFreq = 170 + 115 * (1 - y / window.innerHeight);
+  osc1.type = 'sine';
+  osc1.frequency.value = baseFreq;
+  osc2.type = 'sine';
+  osc2.frequency.value = baseFreq * 1.5;
+  
+  gain1.gain.setValueAtTime(0, now);
+  gain1.gain.linearRampToValueAtTime(0.04, now + 0.5);
+  gain2.gain.setValueAtTime(0, now);
+  gain2.gain.linearRampToValueAtTime(0.02, now + 0.5);
+  
+  osc1.connect(gain1).connect(ctx.destination);
+  osc2.connect(gain2).connect(ctx.destination);
+  osc1.start(now);
+  osc2.start(now);
+}
+
+function stopTone() {
+  if (osc1 && gain1) {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    gain1.gain.linearRampToValueAtTime(0, now + 0.8);
+    gain2.gain.linearRampToValueAtTime(0, now + 0.8);
+    try { osc1.stop(now + 0.9); osc2.stop(now + 0.9); } catch(e) {}
+  }
+}
+
+overlayCanvas.addEventListener('mousedown', e => {
+  startBreath(e.clientX, e.clientY);
+});
+
+overlayCanvas.addEventListener('mouseup', endBreath);
+
+overlayCanvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  startBreath(e.touches[0].clientX, e.touches[0].clientY);
+});
+
+overlayCanvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  endBreath();
+});
+
+function startBreath(x, y) {
+  ripple = { x, y, phase: 'inhale', radius: 28 };
+  holdStartTime = performance.now();
+  startTone(y);
+  document.getElementById('breathCount').classList.add('active');
+}
+
+function endBreath() {
+  if (ripple && ripple.phase === 'inhale') {
+    ripple.phase = 'exhale';
+    ripple.exhaleStartTime = performance.now();
+    ripple.exhaleStartRadius = ripple.radius;
+    totalBreaths++;
+    document.getElementById('breathCount').textContent = totalBreaths;
+  }
+  stopTone();
+  setTimeout(() => {
+    document.getElementById('breathCount').classList.remove('active');
+  }, 600);
+}
+
+function updateBreath(now) {
+  if (!ripple) return;
+  
+  if (ripple.phase === 'inhale') {
+    const elapsed = now - holdStartTime;
+    ripple.radius = Math.min(320, 28 + (elapsed * params.growth));
+    breathIntensity = Math.min(1, (ripple.radius - 28) / 292);
+  } else if (ripple.phase === 'exhale') {
+    const elapsed = now - ripple.exhaleStartTime;
+    const progress = Math.min(1, elapsed / params.fade);
+    ripple.radius = ripple.exhaleStartRadius * (1 - progress * 0.38);
+    ripple.alpha = 1 - progress;
+    breathIntensity = Math.max(0, breathIntensity - 0.012);
+    if (progress >= 1) {
+      ripple = null;
+      breathIntensity = 0;
+    }
+  }
+}
+
+function drawBreathRings() {
+  overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  
+  if (!ripple) return;
+  
+  const alpha = ripple.alpha !== undefined ? ripple.alpha : 1;
+  
+  for (let i = 0; i < params.rings; i++) {
+    const ringRadius = ripple.radius - (i * params.spacing);
+    if (ringRadius > 0) {
+      const ringAlpha = alpha * (1 - i * 0.06);
+      
+      overlayCtx.globalAlpha = ringAlpha * 0.5;
+      overlayCtx.strokeStyle = '#23BFA3';
+      overlayCtx.lineWidth = 8;
+      overlayCtx.shadowBlur = 50;
+      overlayCtx.shadowColor = 'rgba(35, 191, 163, 1)';
+      overlayCtx.beginPath();
+      overlayCtx.arc(ripple.x, ripple.y, ringRadius, 0, 2 * Math.PI);
+      overlayCtx.stroke();
+      
+      overlayCtx.globalAlpha = ringAlpha;
+      overlayCtx.strokeStyle = '#ffffff';
+      overlayCtx.lineWidth = 4;
+      overlayCtx.shadowBlur = 35;
+      overlayCtx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      overlayCtx.beginPath();
+      overlayCtx.arc(ripple.x, ripple.y, ringRadius, 0, 2 * Math.PI);
+      overlayCtx.stroke();
+    }
+  }
+  
+  overlayCtx.globalAlpha = 1;
+  overlayCtx.shadowBlur = 0;
+}
+
+function animate(now) {
+  updateBreath(now);
+  drawBreathRings();
+  requestAnimationFrame(animate);
+}
+
+animate(performance.now());
+  </script>
 </body>
 </html>
